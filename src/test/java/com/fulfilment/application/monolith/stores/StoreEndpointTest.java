@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -92,6 +93,36 @@ public class StoreEndpointTest {
   }
 
   @Test
+  public void testCreateStoreAndDeleteStore() {
+    Number createdId =
+        given()
+            .contentType("application/json")
+            .body(
+                """
+                {
+                  "name": "Created Store",
+                  "quantityProductsInStock": 14
+                }
+                """)
+            .when()
+            .post("/store")
+            .then()
+            .statusCode(201)
+            .body("name", equalTo("Created Store"))
+            .body("quantityProductsInStock", equalTo(14))
+            .extract()
+            .path("id");
+
+    verify(legacyGateway, times(1)).createStoreOnLegacySystem(any(Store.class));
+
+    given()
+        .when()
+        .delete("/store/" + createdId.longValue())
+        .then()
+        .statusCode(204);
+  }
+
+  @Test
   public void testUpdateStoreAndDeleteMissingStore() {
     given()
         .contentType("application/json")
@@ -129,5 +160,25 @@ public class StoreEndpointTest {
         .then()
         .statusCode(422)
         .body("code", equalTo(422));
+  }
+
+  @Test
+  public void testUpdateMissingStoreReturns404() {
+    given()
+        .contentType("application/json")
+        .body(
+            """
+            {
+              "name": "Missing Store",
+              "quantityProductsInStock": 3
+            }
+            """)
+        .when()
+        .put("/store/999999")
+        .then()
+        .statusCode(404)
+        .body("code", equalTo(404));
+
+    verifyNoInteractions(legacyGateway);
   }
 }

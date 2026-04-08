@@ -88,6 +88,41 @@ public class WarehouseSearchEndpointTest {
         .statusCode(400);
   }
 
+  @Test
+  void testSearchRejectsInvalidSortByAndSortOrder() {
+    given()
+        .queryParam("sortBy", "stock")
+        .when()
+        .get("/warehouse/search")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("sortOrder", "sideways")
+        .when()
+        .get("/warehouse/search")
+        .then()
+        .statusCode(400);
+  }
+
+  @Test
+  void testSearchRejectsNegativePageAndInvalidCapacityRange() {
+    given()
+        .queryParam("page", -1)
+        .when()
+        .get("/warehouse/search")
+        .then()
+        .statusCode(400);
+
+    given()
+        .queryParam("minCapacity", 80)
+        .queryParam("maxCapacity", 20)
+        .when()
+        .get("/warehouse/search")
+        .then()
+        .statusCode(400);
+  }
+
   private void persistWarehouse(
       String businessUnitCode,
       String location,

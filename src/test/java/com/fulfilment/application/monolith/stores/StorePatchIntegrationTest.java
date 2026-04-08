@@ -70,4 +70,40 @@ public class StorePatchIntegrationTest {
 
     verify(legacyGateway, times(1)).updateStoreOnLegacySystem(any(Store.class));
   }
+
+  @Test
+  public void testPatchRejectsNullName() {
+    given()
+        .contentType("application/json")
+        .body("{\"name\": null}")
+        .when()
+        .patch("/store/" + namedStoreId)
+        .then()
+        .statusCode(422)
+        .body("code", equalTo(422));
+  }
+
+  @Test
+  public void testPatchRejectsInvalidQuantity() {
+    given()
+        .contentType("application/json")
+        .body("{\"quantityProductsInStock\": \"oops\"}")
+        .when()
+        .patch("/store/" + namedStoreId)
+        .then()
+        .statusCode(422)
+        .body("code", equalTo(422));
+  }
+
+  @Test
+  public void testPatchMissingStoreReturns404() {
+    given()
+        .contentType("application/json")
+        .body("{\"name\": \"Missing\"}")
+        .when()
+        .patch("/store/999999")
+        .then()
+        .statusCode(404)
+        .body("code", equalTo(404));
+  }
 }

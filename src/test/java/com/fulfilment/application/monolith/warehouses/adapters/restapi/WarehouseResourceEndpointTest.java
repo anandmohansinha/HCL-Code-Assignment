@@ -86,6 +86,26 @@ public class WarehouseResourceEndpointTest {
   }
 
   @Test
+  public void testCreateWarehouseDefaultsMissingStockToZero() {
+    given()
+        .contentType("application/json")
+        .body(
+            """
+            {
+              "businessUnitCode": "MWH.005",
+              "location": "AMSTERDAM-002",
+              "capacity": 60
+            }
+            """)
+        .when()
+        .post("/warehouse")
+        .then()
+        .statusCode(200)
+        .body("businessUnitCode", equalTo("MWH.005"))
+        .body("stock", equalTo(0));
+  }
+
+  @Test
   public void testCreateWarehouseRejectsInvalidRequest() {
     given()
         .contentType("application/json")
@@ -128,6 +148,18 @@ public class WarehouseResourceEndpointTest {
   }
 
   @Test
+  public void testArchiveAlreadyArchivedWarehouseReturns400() {
+    given().when().delete("/warehouse/MWH.001").then().statusCode(204);
+
+    given()
+        .when()
+        .delete("/warehouse/MWH.001")
+        .then()
+        .statusCode(400)
+        .body("code", equalTo(400));
+  }
+
+  @Test
   public void testReplaceWarehouse() {
     given()
         .contentType("application/json")
@@ -147,6 +179,25 @@ public class WarehouseResourceEndpointTest {
         .body("location", equalTo("AMSTERDAM-002"))
         .body("capacity", equalTo(70))
         .body("stock", equalTo(15));
+  }
+
+  @Test
+  public void testReplaceWarehouseDefaultsMissingStockToZero() {
+    given()
+        .contentType("application/json")
+        .body(
+            """
+            {
+              "location": "AMSTERDAM-002",
+              "capacity": 70
+            }
+            """)
+        .when()
+        .post("/warehouse/MWH.001/replacement")
+        .then()
+        .statusCode(200)
+        .body("businessUnitCode", equalTo("MWH.001"))
+        .body("stock", equalTo(0));
   }
 
   @Test

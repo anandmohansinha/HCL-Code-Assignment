@@ -188,6 +188,46 @@ public class WarehouseTestcontainersIT {
     assertEquals(2, results.size());
   }
 
+  @Test
+  @Transactional
+  public void testRemoveDeletesArchivedWarehouse() {
+    Warehouse warehouse = new Warehouse();
+    warehouse.businessUnitCode = "REMOVE-ARCHIVED-001";
+    warehouse.location = "AMSTERDAM-001";
+    warehouse.capacity = 40;
+    warehouse.stock = 5;
+
+    createWarehouseUseCase.create(warehouse);
+
+    Warehouse created = warehouseRepository.findByBusinessUnitCode("REMOVE-ARCHIVED-001");
+    created.archivedAt = java.time.LocalDateTime.now();
+    warehouseRepository.update(created);
+
+    warehouseRepository.remove(created);
+
+    assertNull(warehouseRepository.findByBusinessUnitCode("REMOVE-ARCHIVED-001"));
+  }
+
+  @Test
+  @Transactional
+  public void testRemoveRejectsActiveWarehouse() {
+    Warehouse warehouse = new Warehouse();
+    warehouse.businessUnitCode = "REMOVE-ACTIVE-001";
+    warehouse.location = "AMSTERDAM-001";
+    warehouse.capacity = 40;
+    warehouse.stock = 5;
+
+    createWarehouseUseCase.create(warehouse);
+
+    Warehouse created = warehouseRepository.findByBusinessUnitCode("REMOVE-ACTIVE-001");
+
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> warehouseRepository.remove(created));
+
+    assertTrue(exception.getMessage().contains("must be archived before removal"));
+    assertNotNull(warehouseRepository.findByBusinessUnitCode("REMOVE-ACTIVE-001"));
+  }
+
   private void createWarehouse(String code, String location, int capacity) {
     Warehouse warehouse = new Warehouse();
     warehouse.businessUnitCode = code;
