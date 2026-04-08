@@ -11,6 +11,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.WebApplicationException;
+import java.math.BigInteger;
 import java.util.List;
 
 @RequestScoped
@@ -24,6 +25,57 @@ public class WarehouseResourceImpl implements WarehouseResource {
   @Override
   public List<Warehouse> listAllWarehousesUnits() {
     return warehouseRepository.getAll().stream().map(this::toWarehouseResponse).toList();
+  }
+
+  @Override
+  public List<Warehouse> searchWarehouses(
+      String location,
+      BigInteger minCapacity,
+      BigInteger maxCapacity,
+      String sortBy,
+      String sortOrder,
+      BigInteger page,
+      BigInteger pageSize) {
+    String effectiveSortBy = sortBy != null ? sortBy : "createdAt";
+    String effectiveSortOrder = sortOrder != null ? sortOrder : "asc";
+    int effectivePage = page != null ? page.intValueExact() : 0;
+    int effectivePageSize = pageSize != null ? pageSize.intValueExact() : 10;
+    Integer effectiveMinCapacity = minCapacity != null ? minCapacity.intValueExact() : null;
+    Integer effectiveMaxCapacity = maxCapacity != null ? maxCapacity.intValueExact() : null;
+
+    if (!"createdAt".equals(effectiveSortBy) && !"capacity".equals(effectiveSortBy)) {
+      throw new WebApplicationException("sortBy must be either 'createdAt' or 'capacity'", 400);
+    }
+
+    if (!"asc".equalsIgnoreCase(effectiveSortOrder) && !"desc".equalsIgnoreCase(effectiveSortOrder)) {
+      throw new WebApplicationException("sortOrder must be either 'asc' or 'desc'", 400);
+    }
+
+    if (effectivePage < 0) {
+      throw new WebApplicationException("page must be >= 0", 400);
+    }
+
+    if (effectivePageSize < 1 || effectivePageSize > 100) {
+      throw new WebApplicationException("pageSize must be between 1 and 100", 400);
+    }
+
+    if (effectiveMinCapacity != null
+        && effectiveMaxCapacity != null
+        && effectiveMinCapacity > effectiveMaxCapacity) {
+      throw new WebApplicationException("minCapacity must be <= maxCapacity", 400);
+    }
+
+    return warehouseRepository.search(
+            location,
+            effectiveMinCapacity,
+            effectiveMaxCapacity,
+            effectiveSortBy,
+            effectiveSortOrder,
+            effectivePage,
+            effectivePageSize)
+        .stream()
+        .map(this::toWarehouseResponse)
+        .toList();
   }
 
   @Override

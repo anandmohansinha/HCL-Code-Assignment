@@ -135,9 +135,27 @@ If you finish early or want to show more of what you can do — this is your spa
 There are no fixed requirements here. Think about what a production-grade version of this system would look like and bring whatever you think adds value. Some prompts to get you thinking:
 
 - Are there edge cases or failure modes not covered by the existing tests?
+-         the current tests cover the main happy paths and some important concurrency behavior, but there are still a few edge cases worth adding.
+-         The biggest gaps are API-level validation cases, like duplicate warehouse creation through the REST layer, 
+-          archive of a non-existing warehouse, and replace requests with invalid location or stock greater than capacity.
+        I’d also add more partial-update tests for Store, especially stock-only updates and zero-stock cases, plus a couple more warehouse conflict 
+-     scenarios like archive-versus-replace and replace-versus-replace under concurrency. So overall, the suite is good for core behavior,
+-      but I’d strengthen it around boundary cases, contract validation, and a few more race conditions.
+- 
 - Is there anything in the architecture, API design, or error handling you would do differently?
+-         I’d improve contract consistency, standardize error handling, and make integration patterns more production-friendly while keeping the 
+-         core architecture style.
 - What observability, resilience, or operational concerns would you address in a real system?
+  -      For observability, I’d add structured logging, request tracing, and metrics around key flows like warehouse create/replace/archive and store sync.
+  -     That would help us see failure rates, latency, retry volume, and concurrency conflicts in production.
+         For resilience, I’d pay special attention to integrations and concurrency. The store-to-legacy sync should have retries, 
+          dead-letter handling, and ideally an outbox pattern so we don’t lose events. For warehouse updates, I’d make optimistic-lock failures visible and return clear client errors so callers know they need to retry.
+         Operationally, I’d add health checks, better environment-specific config, alerting, and dashboards. I’d also make sure logs don’t expose sensitive data, and I’d validate behavior against the real production database, not just H2, because concurrency and constraint behavior can differ.
 - Is there anything else in the codebase that looks off to you?
+      Naming is a little confusing in the warehouse API. Paths use {id} in the spec for get/delete, but the actual value is really the business unit 
+-     code like MWH.001, not a database id. That can easily confuse someone reading the API for the first time.
+      The warehouse API contract is still a bit inconsistent with implementation. In warehouse-openapi.yaml (line 133), replace is described like “archive old + create new,” but the current code updates the same record in place.
+
 
 There are no wrong answers — we're interested in how you think and what you prioritise.
 
