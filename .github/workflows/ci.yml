@@ -34,6 +34,9 @@ jobs:
       - name: Run targeted warehouse integration tests
         run: ./mvnw --batch-mode test "-Dtest=WarehouseConcurrencyIT,WarehouseTestcontainersIT"
 
+      - name: Generate JaCoCo report
+        run: ./mvnw --batch-mode verify -DskipTests
+
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -43,3 +46,11 @@ jobs:
             target/surefire-reports
             target/failsafe-reports
           if-no-files-found: warn
+
+      - name: Upload JaCoCo HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-report
+          path: target/coverage
+          if-no-files-found: error
