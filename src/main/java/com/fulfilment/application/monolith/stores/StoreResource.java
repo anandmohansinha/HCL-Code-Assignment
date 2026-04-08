@@ -89,23 +89,26 @@ public class StoreResource {
   @PATCH
   @Path("{id}")
   @Transactional
-  public Store patch(Long id, Store updatedStore) {
-    if (updatedStore.name == null) {
-      throw new WebApplicationException("Store Name was not set on request.", 422);
-    }
-
+  public Store patch(Long id, ObjectNode updatedStore) {
     Store entity = Store.findById(id);
 
     if (entity == null) {
       throw new WebApplicationException("Store with id of " + id + " does not exist.", 404);
     }
 
-    if (entity.name != null) {
-      entity.name = updatedStore.name;
+    if (updatedStore.has("name")) {
+      if (updatedStore.get("name").isNull()) {
+        throw new WebApplicationException("Store Name cannot be null.", 422);
+      }
+      entity.name = updatedStore.get("name").asText();
     }
 
-    if (entity.quantityProductsInStock != 0) {
-      entity.quantityProductsInStock = updatedStore.quantityProductsInStock;
+    if (updatedStore.has("quantityProductsInStock")) {
+      if (updatedStore.get("quantityProductsInStock").isNull()
+          || !updatedStore.get("quantityProductsInStock").canConvertToInt()) {
+        throw new WebApplicationException("quantityProductsInStock must be a valid integer.", 422);
+      }
+      entity.quantityProductsInStock = updatedStore.get("quantityProductsInStock").asInt();
     }
 
     storeUpdatedEvent.fire(new StoreUpdatedEvent(entity));

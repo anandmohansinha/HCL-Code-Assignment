@@ -5,7 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.mockito.InjectMock;
+import io.quarkus.test.junit.QuarkusMock;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -18,8 +19,13 @@ import org.mockito.Mockito;
 @QuarkusTest
 public class StoreTransactionIntegrationTest {
 
-  @InjectMock
   LegacyStoreManagerGateway legacyGateway;
+
+  @BeforeEach
+  public void setup() {
+    legacyGateway = Mockito.mock(LegacyStoreManagerGateway.class);
+    QuarkusMock.installMockForType(legacyGateway, LegacyStoreManagerGateway.class);
+  }
 
   @Test
   public void testLegacySystemNotNotifiedOnFailedStoreCreation() throws InterruptedException {
