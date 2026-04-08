@@ -60,6 +60,11 @@ public class StoreResource {
 
     store.persist();
     storeCreatedEvent.fire(new StoreCreatedEvent(store));
+    LOGGER.infof(
+        "Created store id=%d name=%s quantityProductsInStock=%d",
+        store.id,
+        store.name,
+        store.quantityProductsInStock);
 
     return Response.ok(store).status(201).build();
   }
@@ -82,6 +87,11 @@ public class StoreResource {
     entity.quantityProductsInStock = updatedStore.quantityProductsInStock;
 
     storeUpdatedEvent.fire(new StoreUpdatedEvent(entity));
+    LOGGER.infof(
+        "Updated store id=%d name=%s quantityProductsInStock=%d",
+        entity.id,
+        entity.name,
+        entity.quantityProductsInStock);
 
     return entity;
   }
@@ -112,6 +122,11 @@ public class StoreResource {
     }
 
     storeUpdatedEvent.fire(new StoreUpdatedEvent(entity));
+    LOGGER.infof(
+        "Patched store id=%d name=%s quantityProductsInStock=%d",
+        entity.id,
+        entity.name,
+        entity.quantityProductsInStock);
 
     return entity;
   }
@@ -125,6 +140,7 @@ public class StoreResource {
       throw new WebApplicationException("Store with id of " + id + " does not exist.", 404);
     }
     entity.delete();
+    LOGGER.infof("Deleted store id=%d", id);
     return Response.status(204).build();
   }
 

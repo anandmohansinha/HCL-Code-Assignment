@@ -13,9 +13,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.WebApplicationException;
 import java.math.BigInteger;
 import java.util.List;
+import org.jboss.logging.Logger;
 
 @RequestScoped
 public class WarehouseResourceImpl implements WarehouseResource {
+
+  private static final Logger LOGGER = Logger.getLogger(WarehouseResourceImpl.class);
 
   @Inject private WarehouseRepository warehouseRepository;
   @Inject private CreateWarehouseOperation createWarehouseOperation;
@@ -24,6 +27,7 @@ public class WarehouseResourceImpl implements WarehouseResource {
 
   @Override
   public List<Warehouse> listAllWarehousesUnits() {
+    LOGGER.debug("Listing all warehouse units");
     return warehouseRepository.getAll().stream().map(this::toWarehouseResponse).toList();
   }
 
@@ -42,6 +46,16 @@ public class WarehouseResourceImpl implements WarehouseResource {
     int effectivePageSize = pageSize != null ? pageSize.intValueExact() : 10;
     Integer effectiveMinCapacity = minCapacity != null ? minCapacity.intValueExact() : null;
     Integer effectiveMaxCapacity = maxCapacity != null ? maxCapacity.intValueExact() : null;
+
+    LOGGER.infof(
+        "Searching warehouses with location=%s, minCapacity=%s, maxCapacity=%s, sortBy=%s, sortOrder=%s, page=%d, pageSize=%d",
+        location,
+        effectiveMinCapacity,
+        effectiveMaxCapacity,
+        effectiveSortBy,
+        effectiveSortOrder,
+        effectivePage,
+        effectivePageSize);
 
     if (!"createdAt".equals(effectiveSortBy) && !"capacity".equals(effectiveSortBy)) {
       throw new WebApplicationException("sortBy must be either 'createdAt' or 'capacity'", 400);
@@ -91,6 +105,12 @@ public class WarehouseResourceImpl implements WarehouseResource {
     try {
       // Create warehouse through use case (includes validations)
       createWarehouseOperation.create(domainWarehouse);
+      LOGGER.infof(
+          "Created warehouse businessUnitCode=%s at location=%s with capacity=%d and stock=%d",
+          domainWarehouse.businessUnitCode,
+          domainWarehouse.location,
+          domainWarehouse.capacity,
+          domainWarehouse.stock);
       
       // Return the created warehouse
       return toWarehouseResponse(domainWarehouse);
@@ -102,6 +122,7 @@ public class WarehouseResourceImpl implements WarehouseResource {
   @Override
   public Warehouse getAWarehouseUnitByID(String id) {
     // Find warehouse by business unit code
+    LOGGER.debugf("Fetching warehouse businessUnitCode=%s", id);
     var domainWarehouse = warehouseRepository.findByBusinessUnitCode(id);
     
     if (domainWarehouse == null) {
@@ -124,6 +145,7 @@ public class WarehouseResourceImpl implements WarehouseResource {
     try {
       // Archive warehouse through use case (includes validations)
       archiveWarehouseOperation.archive(domainWarehouse);
+      LOGGER.infof("Archived warehouse businessUnitCode=%s", id);
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), 400);
     }
@@ -146,6 +168,12 @@ public class WarehouseResourceImpl implements WarehouseResource {
 
       // Return the updated warehouse
       var updated = warehouseRepository.findByBusinessUnitCode(businessUnitCode);
+      LOGGER.infof(
+          "Replaced warehouse businessUnitCode=%s with location=%s, capacity=%d, stock=%d",
+          businessUnitCode,
+          updated.location,
+          updated.capacity,
+          updated.stock);
       return toWarehouseResponse(updated);
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), 400);

@@ -9,10 +9,13 @@ import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 @Transactional
 public class WarehouseRepository implements WarehouseStore, PanacheRepository<DbWarehouse> {
+
+  private static final Logger LOGGER = Logger.getLogger(WarehouseRepository.class);
 
   @Override
   public List<Warehouse> getAll() {
@@ -48,12 +51,22 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
     Sort.Direction direction = "desc".equalsIgnoreCase(sortOrder) ? Sort.Direction.Descending
         : Sort.Direction.Ascending;
 
-    return find(query.toString(), Sort.by(sortBy, direction), parameters)
+    List<Warehouse> results =
+        find(query.toString(), Sort.by(sortBy, direction), parameters)
         .page(Page.of(page, pageSize))
         .list()
         .stream()
         .map(DbWarehouse::toWarehouse)
         .toList();
+
+    LOGGER.debugf(
+        "Warehouse search returned %d results for query='%s' on page=%d with pageSize=%d",
+        results.size(),
+        query,
+        page,
+        pageSize);
+
+    return results;
   }
 
   @Override
@@ -83,6 +96,7 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
     dbWarehouse.archivedAt = warehouse.archivedAt;
 
     getEntityManager().flush();
+    LOGGER.debugf("Updated warehouse businessUnitCode=%s", warehouse.businessUnitCode);
   }
 
   @Override
@@ -101,6 +115,7 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
 
     delete(dbWarehouse);
     getEntityManager().flush();
+    LOGGER.infof("Removed archived warehouse businessUnitCode=%s", warehouse.businessUnitCode);
   }
 
   @Override
